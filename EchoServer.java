@@ -50,8 +50,25 @@ public class EchoServer extends AbstractServer
   public void handleMessageFromClient
     (Object msg, ConnectionToClient client)
   {
-    System.out.println("Message received: " + msg + " from " + client);
-    this.sendToAllClients(msg);
+	  
+	console.display("Message received: " + msg + " from " + client.getInfo("loginID"));
+	  
+	if (msg.toString().startsWith("#login")) {
+		
+		if (client.getInfo("loginID") == null) {
+			client.setInfo("loginID", msg.toString().substring(7));
+			sendToAllClients(client.getInfo("loginID") + " has logged on.");
+			console.display(client.getInfo("loginID") + " has logged on.");
+		} else {
+			try {
+				client.close();
+			} catch (IOException e) {}
+		}
+	} else if (msg.toString().startsWith("#logoff")) {
+		clientDisconnected(client);
+  	} else {
+		sendToAllClients(client.getInfo("loginID") + "> " + msg.toString());
+	}
   }
     
   /**
@@ -72,6 +89,16 @@ public class EchoServer extends AbstractServer
   {
     System.out.println
       ("Server has stopped listening for connections.");
+  }
+  
+  public void handleMessageFromServer(String msg) 
+  {
+    if (msg.substring(16).startsWith("#")) {
+    	consoleCommand(msg.substring(16));
+    } else {
+    	sendToAllClients(msg);
+    	console.display(msg);
+    }
   }
   
   //Class methods ***************************************************
@@ -114,7 +141,7 @@ public class EchoServer extends AbstractServer
    * @param client the connection connected to the client.
    */
   protected void clientConnected(ConnectionToClient client) {
-	  this.sendToAllClients(client.toString() + " has joined the server.");
+	  console.display("A new client is attempting to connect to the server.");
   }
 
   /**
@@ -126,7 +153,7 @@ public class EchoServer extends AbstractServer
    */
   synchronized protected void clientDisconnected(
     ConnectionToClient client) {
-	  this.sendToAllClients(client.toString() + " has left the server.");
+	  console.display(client.getInfo("loginID") + " has disconnected.");
   }
 
   /**
@@ -140,11 +167,11 @@ public class EchoServer extends AbstractServer
    */
   synchronized protected void clientException(
     ConnectionToClient client, Throwable exception) {
-	  this.sendToAllClients(client.toString() + " encountered an error.");
+	  this.sendToAllClients(client.getInfo("loginID") + " has disconnected.");
   }
   
   
-  public void setConsole() {
+  public void setConsole(ServerConsole console) {
 	  this.console = console;
   }
   
@@ -159,20 +186,21 @@ public class EchoServer extends AbstractServer
 			
 		} else if (msg.equals("#stop")) {
 			stopListening();
-			
-			console.display("Server has stopped listening");
+			sendToAllClients("WARNING - The server has stopped listening for connections");
 			
 		} else if (msg.equals("#close")) {
 			try {
+				sendToAllClients("SERVER SHUTTING DOWN! DISCONNECTING!");
 				close();
-			} catch (IOException e) {}
-			
-			console.display("Server has been closed");
+			} catch (IOException e) {
+				
+			}
 			
 		} else if (msg.startsWith("#setport")) {
-			if (isListening()) {
+			if (!isListening()) {
 				try {
 					setPort(Integer.parseInt(msg.substring(9)));
+					console.display("Port set to: " + getPort());
 				} catch (NumberFormatException e) {
 					console.display("Invalid port");
 				}

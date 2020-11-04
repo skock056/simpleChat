@@ -26,6 +26,8 @@ public class ChatClient extends AbstractClient
    * the display method in the client.
    */
   ChatIF clientUI; 
+  
+  String loginID = "";
 
   
   //Constructors ****************************************************
@@ -38,16 +40,24 @@ public class ChatClient extends AbstractClient
    * @param clientUI The interface type variable.
    */
   
-  public ChatClient(String host, int port, ChatIF clientUI) 
-    throws IOException 
+  public ChatClient(String loginID, String host, int port, ChatIF clientUI) 
   {
     super(host, port); //Call the superclass constructor
     this.clientUI = clientUI;
-    openConnection();
+    this.loginID = loginID;
   }
 
   
   //Instance methods ************************************************
+  
+  public void connect() throws IOException{
+	  try {
+		  openConnection();
+		  handleMessageFromClientUI("#login " + loginID);
+	  } catch (IOException e) {
+			clientUI.display("ERROR - No login ID specified.  Connection aborted.");
+	  }
+  }
     
   /**
    * This method handles all data that comes in from the server.
@@ -66,16 +76,21 @@ public class ChatClient extends AbstractClient
    */
   public void handleMessageFromClientUI(String message)
   {
-    try
-    {
-      sendToServer(message);
-    }
-    catch(IOException e)
-    {
-      clientUI.display
-        ("Could not send message to server.  Terminating client.");
-      quit();
-    }
+	  if (message.startsWith("#") && !message.startsWith("#login ")) {
+		  consoleCommand(message);
+	  } else {
+	  
+		  try
+		  {
+			  sendToServer(message);
+		  }
+		  catch(IOException e)
+		  {
+			  clientUI.display
+			  ("Could not send message to server.  Terminating client.");
+			  quit();
+		  }
+	  }  
   }
   
   /**
@@ -99,7 +114,6 @@ public class ChatClient extends AbstractClient
 	 */
 	protected void connectionClosed() {
 		clientUI.display("Connection to server closed. Terminating client.");
-		quit();
 	}
 
 	/**
@@ -111,8 +125,7 @@ public class ChatClient extends AbstractClient
 	 *            the exception raised.
 	 */
 	protected void connectionException(Exception exception) {
-		clientUI.display("Client has encountered an error. Terminating client");
-		quit();
+		clientUI.display("Abnormal termination of connection.");
 	}
 	
 	public void consoleCommand(String msg) {
@@ -131,6 +144,7 @@ public class ChatClient extends AbstractClient
 			if (!isConnected()) {
 				if (msg.length() >= 10) {
 					setHost(msg.substring(9));
+					clientUI.display("Host set to: " + getHost());
 				} else {
 					clientUI.display("Invalid host");
 				}
@@ -142,6 +156,7 @@ public class ChatClient extends AbstractClient
 			if (!isConnected()) {
 				try {
 					setPort(Integer.parseInt(msg.substring(9)));
+					clientUI.display("Port set to: " + getPort());
 				} catch (NumberFormatException e) {
 					clientUI.display("Invalid port");
 				}
@@ -153,11 +168,12 @@ public class ChatClient extends AbstractClient
 			if (!isConnected()) {
 				try {
 					openConnection();
+					handleMessageFromClientUI("#login " + loginID);
 				} catch (IOException e) {
 					
 				}
 			} else {
-				clientUI.display("Already connected");
+				clientUI.display("Already logged in");
 			}
 			
 		} else if (msg.equals("#gethost")) {
