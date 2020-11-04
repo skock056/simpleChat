@@ -111,8 +111,66 @@ public class ChatClient extends AbstractClient
 	 *            the exception raised.
 	 */
 	protected void connectionException(Exception exception) {
-		clientUI.display("Could not connect to server. Terminating client.");
+		clientUI.display("Client has encountered an error. Terminating client");
 		quit();
+	}
+	
+	public void consoleCommand(String msg) {
+		
+		if (msg.equals("#quit")) {
+			quit();
+			
+		} else if (msg.equals("#logoff")) {
+			try {
+				closeConnection();
+			} catch (IOException e) {
+				
+			}
+			
+		} else if (msg.startsWith("#sethost")) {
+			if (!isConnected()) {
+				if (msg.length() >= 10) {
+					setHost(msg.substring(9));
+				} else {
+					clientUI.display("Invalid host");
+				}
+			} else {
+				clientUI.display("Unable to set new host while connected");
+			}
+			
+		} else if (msg.startsWith("#setport")) {
+			if (!isConnected()) {
+				try {
+					setPort(Integer.parseInt(msg.substring(9)));
+				} catch (NumberFormatException e) {
+					clientUI.display("Invalid port");
+				}
+			} else {
+				clientUI.display("Invalid port");
+			}
+			
+		} else if (msg.equals("#login")) {
+			if (!isConnected()) {
+				try {
+					openConnection();
+				} catch (IOException e) {
+					
+				}
+			} else {
+				clientUI.display("Already connected");
+			}
+			
+		} else if (msg.equals("#gethost")) {
+			
+			clientUI.display(getHost());
+			
+		} else if (msg.equals("#getport")) {
+			
+			clientUI.display(Integer.toString(getPort()));
+			
+		} else {
+			clientUI.display("Invalid command");
+		}
 	}
 }
 //End of ChatClient class

@@ -24,6 +24,8 @@ public class EchoServer extends AbstractServer
    */
   final public static int DEFAULT_PORT = 5555;
   
+  ServerConsole console;
+  
   //Constructors ****************************************************
   
   /**
@@ -139,6 +141,63 @@ public class EchoServer extends AbstractServer
   synchronized protected void clientException(
     ConnectionToClient client, Throwable exception) {
 	  this.sendToAllClients(client.toString() + " encountered an error.");
+  }
+  
+  
+  public void setConsole() {
+	  this.console = console;
+  }
+  
+  public void consoleCommand(String msg) {
+	  
+	  if (msg.equals("#quit")) {
+			try {
+				close();
+			} catch (IOException e) {}
+			
+			System.exit(0);
+			
+		} else if (msg.equals("#stop")) {
+			stopListening();
+			
+			console.display("Server has stopped listening");
+			
+		} else if (msg.equals("#close")) {
+			try {
+				close();
+			} catch (IOException e) {}
+			
+			console.display("Server has been closed");
+			
+		} else if (msg.startsWith("#setport")) {
+			if (isListening()) {
+				try {
+					setPort(Integer.parseInt(msg.substring(9)));
+				} catch (NumberFormatException e) {
+					console.display("Invalid port");
+				}
+			} else {
+				console.display("Invalid port");
+			}
+			
+		} else if (msg.equals("#start")) {
+			if (!isListening()) {
+				try {
+					listen();
+				} catch (IOException e) {}
+			} else {
+				console.display("Server is already listening for new connections");
+			}
+			
+		} else if (msg.equals("#getport")) {
+			
+			console.display(Integer.toString(getPort()));
+			
+		} else {
+			
+			console.display("Invalid command");
+			
+		}
   }
 }
 //End of EchoServer class
